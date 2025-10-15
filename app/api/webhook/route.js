@@ -61,15 +61,13 @@ you get tell them to call in this number for more details or if you dont underst
 
           const result = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            // contents: [{ role: "user", parts: [{ text: prompt }] }],
-            contents: `${prompt}`,
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            // contents: `${prompt}`,
           });
 
           // Gemini returns text in .response.text() (sometimes .text)
           const reply =
             result.text ||
-            result.response?.text?.() ||
-            result.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
             "hello can you send me the prefered location , grade of student and any more details that .";
 
           console.log("🤖 Reply:", reply);
