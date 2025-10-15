@@ -41,10 +41,7 @@ export async function POST(req) {
 
           // 🧠 Generate AI response from Gemini
           const prompt = `
-          You are "Topper Home Tuition Assistant".
-          You reply politely to parents asking about tuition, fees, tutors, and scheduling demo classes.
-          Keep replies short, friendly, and professional.
-          Message: "${message}"
+         imagine you are an asistant of a tution center  ${message}"
           `;
 
           const result = await ai.models.generateContent({
@@ -56,7 +53,7 @@ export async function POST(req) {
           const reply =
             result.response?.text?.() ||
             result.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-            "Sorry, I couldn’t process that right now.";
+            "hello can you send me the prefered location , grade of student and any more details that .";
 
           console.log("🤖 Reply:", reply);
 
