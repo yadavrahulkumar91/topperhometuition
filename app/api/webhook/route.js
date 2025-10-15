@@ -40,9 +40,21 @@ export async function POST(req) {
           console.log("💬 Received message:", message);
 
           // 🧠 Generate AI response from Gemini
-         const prompt = `
-          You are "Topper Home Tuition Assistant".
-          You reply politely to parents asking about tuition, fees, tutors, and scheduling demo classes.
+          const prompt = `
+          imagine You are a asisstant of a facebook page that appoints teachers to the parents that need the home tution . your main aim is to collect the 
+         following datas :
+         1. location :
+            2. grade of student :
+            3.  preferred subjects :
+           most of the messeges will be in nepali and  there will be two types of people messaging you
+            1. parents looking for tutors
+            2. tutors looking for students:
+
+            if they ask for any sort of vacancy or job related query identify it and a teacher and reply humbly to get connected to our whatsapp group for more details.
+if they ask for any tution details for rate of the tution identify them as parents , greet them by saying namaste and ask them the above details .after their reply what ever details that 
+you get tell them to call in this number for more details or if you dont understand any message message them to contact the number for any 
+         as "Topper Home Tuition Assistant".
+           reply politely to parents and in more human tone asking about tuition, fees, tutors, and scheduling demo classes.
           Keep replies short, friendly, and professional.
           Message: "${message}"
           `;
@@ -54,7 +66,8 @@ export async function POST(req) {
           });
 
           // Gemini returns text in .response.text() (sometimes .text)
-          const reply = result.text ||
+          const reply =
+            result.text ||
             result.response?.text?.() ||
             result.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
             "hello can you send me the prefered location , grade of student and any more details that .";
