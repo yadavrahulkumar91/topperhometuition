@@ -40,13 +40,17 @@ export async function POST(req) {
           console.log("💬 Received message:", message);
 
           // 🧠 Generate AI response from Gemini
-          const prompt = `
-         imagine you are an asistant of a tution center  ${message}"
+         const prompt = `
+          You are "Topper Home Tuition Assistant".
+          You reply politely to parents asking about tuition, fees, tutors, and scheduling demo classes.
+          Keep replies short, friendly, and professional.
+          Message: "${message}"
           `;
 
           const result = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            // contents: [{ role: "user", parts: [{ text: prompt }] }],
+            contents: `${prompt}`,
           });
 
           // Gemini returns text in .response.text() (sometimes .text)
