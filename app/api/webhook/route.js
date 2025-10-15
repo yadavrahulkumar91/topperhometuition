@@ -54,7 +54,7 @@ export async function POST(req) {
           });
 
           // Gemini returns text in .response.text() (sometimes .text)
-          const reply =
+          const reply = result.text ||
             result.response?.text?.() ||
             result.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
             "hello can you send me the prefered location , grade of student and any more details that .";
