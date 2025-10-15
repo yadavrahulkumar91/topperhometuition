@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
 import axios from "axios";
-import { GoogleGenAI } from "@google/genai";
 
-// Initialize Gemini client
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_API_KEY,
-});
-
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-/* ✅ STEP 1: Webhook Verification (GET) */
+/* ✅ STEP 1: Verify webhook (GET request) */
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("hub.mode");
@@ -25,7 +21,7 @@ export async function GET(req) {
   }
 }
 
-/* ✅ STEP 2: Handle Incoming Messages (POST) */
+/* ✅ STEP 2: Handle messages (POST request) */
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -39,28 +35,25 @@ export async function POST(req) {
         if (message) {
           console.log("💬 Received message:", message);
 
-          // 🧠 Generate AI response from Gemini
-          const prompt = `
-          You are "Topper Home Tuition Assistant".
-          You reply politely to parents asking about tuition, fees, tutors, and scheduling demo classes.
-          Keep replies short, friendly, and professional.
-          Message: "${message}"
-          `;
-
-          const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
+          // Get AI reply from OpenAI
+          const aiResponse = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
+                content: `
+                You are "Topper Home Tuition Assistant".
+                Respond politely to parents asking about tuition, fees, subjects, or scheduling demos.
+                Keep replies short and clear.
+                `,
+              },
+              { role: "user", content: message },
+            ],
           });
 
-          // Gemini returns text in .response.text() (sometimes .text)
-          const reply =
-            result.response?.text?.() ||
-            result.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-            "Sorry, I couldn’t process that right now.";
+          const reply = aiResponse.choices[0].message.content.trim();
 
-          console.log("🤖 Reply:", reply);
-
-          // 📤 Send reply back to Messenger
+          // Send reply back to Messenger
           await axios.post(
             `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
             {
