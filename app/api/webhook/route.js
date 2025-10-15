@@ -29,7 +29,7 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const body = await req.json();
-
+    console.log("📩 Webhook event received:", JSON.stringify(body, null, 2))    ;
     if (body.object === "page") {
       for (const entry of body.entry) {
         const event = entry.messaging[0];
@@ -51,9 +51,9 @@ export async function POST(req) {
             2. tutors looking for students:
 
             if they ask for any sort of vacancy or job related query identify it and a teacher and reply humbly to get connected to our whatsapp group for more details.
-if they ask for any tution details for rate of the tution identify them as parents , greet them by saying namaste and ask them the above details .after their reply what ever details that 
-you get tell them to call in this number for more details or if you dont understand any message message them to contact the number for any 
-         as "Topper Home Tuition Assistant".
+          if they ask for any tution details for rate of the tution identify them as parents , greet them by saying namaste and ask them the above details .after their reply what ever details that 
+          you get tell them to call in this number for more details or if you dont understand any message message them to contact the number for any 
+          as "Topper Home Tuition Assistant".
            reply politely to parents and in more human tone asking about tuition, fees, tutors, and scheduling demo classes.
           Keep replies short, friendly, and professional.
           Message: "${message}"
