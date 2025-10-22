@@ -97,6 +97,93 @@ export async function GET(req) {
 
 
 /* ✅ STEP 2: Handle Incoming Messages (POST) */
+// export async function POST(req) {
+//   try {
+//     const body = await req.json();
+//     console.log("📩 Webhook event received:", JSON.stringify(body, null, 2));
+
+//     if (body.object === "page") {
+//       for (const entry of body.entry) {
+//         const event = entry.messaging[0];
+//         const senderId = event.sender.id;
+//         const message = event.message?.text;
+
+//         if (message) {
+//           console.log("💬 Received message:", message);
+
+//           /* 🗂️ STEP 1: Fetch existing conversation history */
+//           const convoUrl = `https://graph.facebook.com/v19.0/${senderId}/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+//           let conversationHistory = "";
+
+//           try {
+//             const convoRes = await axios.get(convoUrl);
+//             const messages = convoRes.data?.data || [];
+
+//             conversationHistory = messages
+//               .map((m) => `${m.from?.name || "User"}: ${m.message}`)
+//               .reverse()
+//               .join("\n");
+
+//             console.log("🕘 Previous conversation loaded.");
+//           } catch (err) {
+//             console.warn("⚠️ Could not load conversation history:", err.message);
+//             conversationHistory = "";
+//           }
+
+//           /* 🧠 STEP 2: Prepare contextual prompt */
+//           const prompt = `
+//                       You are "Topper Home Tuition Assistant", an AI managing tuition-related Facebook chats.
+//                       Below is the full chat history between user and you.
+//                       Respond naturally based on full context.
+
+//                       Chat History:
+//                       ${conversationHistory}
+
+//                       New Message: "${message}"
+
+//                       Rules:
+//                       1. Identify if it's a parent (asking tuition) or tutor (asking vacancy/job).
+//                       2. Parents → greet with "Namaste" and ask for location, grade, and subjects.
+//                       3. Tutors → share WhatsApp group link for more details.
+//                       4. Always be polite, short, and helpful.
+//                       5. If unclear → ask them to contact 980245698 for more details.
+//                       `;
+
+//           /* 💡 STEP 3: Get Gemini Response */
+//           const result = await ai.models.generateContent({
+//             model: "gemini-2.5-flash",
+//             contents: [{ role: "user", parts: [{ text: prompt }] }],
+//           });
+
+//           const reply =
+//             result.text ||
+//             "Namaste! Could you please share your location, grade, and preferred subjects?";
+
+//           console.log("🤖 Reply:", reply);
+
+//           /* 📤 STEP 4: Send reply to Messenger */
+//           await axios.post(
+//             `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
+//             {
+//               recipient: { id: senderId },
+//               message: { text: reply },
+//             }
+//           );
+//         }
+//       }
+
+//       return NextResponse.json({ status: "ok" });
+//     } else {
+//       return NextResponse.json({ status: "ignored" });
+//     }
+//   } catch (err) {
+//     console.error("❌ Webhook error:", err);
+//     return new Response("Error", { status: 500 });
+//   }
+// }
+
+
+/* ✅ STEP 2: Handle Incoming Messages (POST) */
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -111,57 +198,53 @@ export async function POST(req) {
         if (message) {
           console.log("💬 Received message:", message);
 
-          /* 🗂️ STEP 1: Fetch existing conversation history */
-          const convoUrl = `https://graph.facebook.com/v19.0/${senderId}/messages?access_token=${PAGE_ACCESS_TOKEN}`;
-          let conversationHistory = "";
+          // 🧠 Function to handle Gemini calls with retries and model switching
+          async function generateAIResponse(prompt) {
+            const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
+            for (const model of models) {
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                  console.log(`🤖 Trying model: ${model} (Attempt ${attempt})`);
+                  const result = await ai.models.generateContent({
+                    model,
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                  });
 
-          try {
-            const convoRes = await axios.get(convoUrl);
-            const messages = convoRes.data?.data || [];
-
-            conversationHistory = messages
-              .map((m) => `${m.from?.name || "User"}: ${m.message}`)
-              .reverse()
-              .join("\n");
-
-            console.log("🕘 Previous conversation loaded.");
-          } catch (err) {
-            console.warn("⚠️ Could not load conversation history:", err.message);
-            conversationHistory = "";
+                  if (result.text && result.text.trim()) {
+                    console.log(`✅ Success with ${model}`);
+                    return result.text.trim();
+                  }
+                } catch (err) {
+                  console.warn(
+                    `⚠️ ${model} attempt ${attempt} failed: ${err.message}`
+                  );
+                  if (err?.status !== 503) throw err;
+                  await new Promise((res) => setTimeout(res, 2000)); // wait before retry
+                }
+              }
+            }
+            console.error("🚨 All models overloaded. Using fallback reply.");
+            return "Namaste! Please share your location, grade, and preferred subjects. You can also contact 980245698 for quick support.";
           }
 
-          /* 🧠 STEP 2: Prepare contextual prompt */
+          // 🧩 Create prompt
           const prompt = `
 You are "Topper Home Tuition Assistant", an AI managing tuition-related Facebook chats.
-Below is the full chat history between user and you.
-Respond naturally based on full context.
-
-Chat History:
-${conversationHistory}
-
-New Message: "${message}"
+Below is the current user message:
+"${message}"
 
 Rules:
-1. Identify if it's a parent (asking tuition) or tutor (asking vacancy/job).
+1. Identify if it's a parent (asking for tuition) or a tutor (asking for vacancy/job).
 2. Parents → greet with "Namaste" and ask for location, grade, and subjects.
-3. Tutors → share WhatsApp group link for more details.
-4. Always be polite, short, and helpful.
-5. If unclear → ask them to contact 980245698 for more details.
+3. Tutors → politely direct them to join the WhatsApp group for more details.
+4. Be short, kind, and human-like.
+5. If unclear → ask them to contact 980245698.
 `;
 
-          /* 💡 STEP 3: Get Gemini Response */
-          const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-          });
+          // 🪄 Get AI-generated response
+          const reply = await generateAIResponse(prompt);
 
-          const reply =
-            result.text ||
-            "Namaste! Could you please share your location, grade, and preferred subjects?";
-
-          console.log("🤖 Reply:", reply);
-
-          /* 📤 STEP 4: Send reply to Messenger */
+          // 📤 Send reply to Messenger
           await axios.post(
             `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
             {
