@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
 import db from "../../firebase/firestore.js";
+import { adminDb } from "@/firebase/admin";
 
 console.log("🔧 All imports successful");
 console.log("🔧 Environment vars:", {
@@ -314,10 +315,10 @@ export async function GET(req) {
 
 
 
-
 export async function POST(req) {
   try {
     const body = await req.json();
+    console.log("📩 Webhook event received:", JSON.stringify(body, null, 2));
 
     if (body.object === "page") {
       for (const entry of body.entry) {
@@ -326,59 +327,131 @@ export async function POST(req) {
         const message = event.message?.text;
 
         if (message) {
-          /* 🗂️ STEP 1: Fetch conversation from database */
-          let conversation = await db.conversations.findOne({
-            userId: senderId,
-          });
+          console.log("💬 Received message:", message, "from:", senderId);
 
-          if (!conversation) {
-            conversation = {
-              userId: senderId,
-              messages: [],
-            };
+          /* 🗂️ STEP 1: Fetch conversation from Firestore */
+          const conversationRef = adminDb
+            .collection("conversations")
+            .doc(senderId);
+          const conversationDoc = await conversationRef.get();
+
+          let messages = [];
+
+          if (conversationDoc.exists) {
+            messages = conversationDoc.data().messages || [];
           }
 
-          // Add user message
-          conversation.messages.push({
+          // Add user message to history
+          messages.push({
             role: "user",
             text: message,
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
           });
 
-          // Keep only last 10 messages
-          if (conversation.messages.length > 10) {
-            conversation.messages = conversation.messages.slice(-10);
+          // Keep only last 10 messages to avoid token limits
+          if (messages.length > 20) {
+            messages = messages.slice(-10);
           }
 
-          /* 🧠 STEP 2: Build context */
-          const conversationHistory = conversation.messages
+          /* 🧠 STEP 2: Build conversation context */
+          const conversationHistory = messages
             .map(
               (msg) =>
                 `${msg.role === "user" ? "User" : "Assistant"}: ${msg.text}`
             )
             .join("\n");
 
-          // ... rest of your Gemini logic ...
+          const prompt = `
+You are "Topper Home Tuition Assistant", an AI managing tuition-related Facebook chats.
+Below is the full chat history between user and you.
+Respond naturally based on full context.
 
-          // Save assistant reply to database
-          conversation.messages.push({
-            role: "assistant",
-            text: reply,
-            timestamp: new Date(),
+Chat History:
+${conversationHistory}
+
+Rules:
+1. Identify if it's a parent (asking tuition) or tutor (asking vacancy/job).
+2. Parents → greet with "Namaste" for start of conversation and ask for location, grade, and subjects.
+3. Tutors → share WhatsApp invitation:
+   📢 Invitation for Teachers
+   Dear Teacher,
+   We warmly invite you to join our official WhatsApp group "Topper Home Tuition Center Faculty Members" 📚
+   🔍 Get regular updates on home tuition vacancies for various subjects and grades across different locations of Kathmandu Valley.
+   👉 Join the group now: https://chat.whatsapp.com/GwfibUpx6An8Vx6kFgUWNW?mode=ac_t
+   📘 Follow our Facebook page: https://www.facebook.com/profile.php?id=61570084723558
+   
+4. Always be polite, short, and helpful.
+5. If unclear → ask them to contact WhatsApp 9700218347 for more details.
+
+Respond to the latest user message naturally:`;
+
+          /* 💡 STEP 3: Get Gemini Response */
+          const result = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
           });
 
-          await db.conversations.updateOne(
-            { userId: senderId },
-            { $set: conversation },
-            { upsert: true }
+          const reply =
+            result.text ||
+            "Namaste! Could you please share your location, grade, and preferred subjects?";
+
+          console.log("🤖 Reply:", reply);
+
+          // Add assistant reply to history
+          messages.push({
+            role: "assistant",
+            text: reply,
+            timestamp: new Date().toISOString(),
+          });
+
+          /* 💾 STEP 4: Save conversation to Firestore */
+          await conversationRef.set({
+            userId: senderId,
+            messages: messages,
+            updatedAt: new Date().toISOString(),
+            createdAt: conversationDoc.exists
+              ? conversationDoc.data().createdAt
+              : new Date().toISOString(),
+          });
+
+          console.log("✅ Conversation saved to Firestore");
+
+          /* 📤 STEP 5: Send reply to Messenger */
+          await axios.post(
+            `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
+            {
+              recipient: { id: senderId },
+              message: { text: reply },
+            }
           );
 
-          // Send reply...
+          console.log("✅ Message sent to user");
         }
       }
+
+      return NextResponse.json({ status: "ok" });
+    } else {
+      return NextResponse.json({ status: "ignored" });
     }
   } catch (err) {
-    console.error("❌ Error:", err);
-    return new Response("Error", { status: 500 });
+    console.error("❌ Webhook error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// GET handler for webhook verification (if needed)
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const mode = searchParams.get("hub.mode");
+  const token = searchParams.get("hub.verify_token");
+  const challenge = searchParams.get("hub.challenge");
+
+  const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || "your_verify_token";
+
+  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    console.log("✅ Webhook verified");
+    return new Response(challenge, { status: 200 });
+  } else {
+    return new Response("Forbidden", { status: 403 });
   }
 }
