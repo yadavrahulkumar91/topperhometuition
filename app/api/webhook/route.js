@@ -1,8 +1,17 @@
 // app/api/webhook/route.js
 
+console.log("🔧 Webhook route.js is loading...");
+
 import { NextResponse } from "next/server";
 import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
+
+console.log("🔧 All imports successful");
+console.log("🔧 Environment vars:", {
+  hasGoogle: !!process.env.GOOGLE_API_KEY,
+  hasPage: !!process.env.PAGE_ACCESS_TOKEN,
+  hasVerify: !!process.env.VERIFY_TOKEN,
+});
 
 // Initialize Gemini client
 const ai = new GoogleGenAI({
