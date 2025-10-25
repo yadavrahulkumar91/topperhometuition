@@ -3,12 +3,10 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Googleai from "./googleai";
 
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
-      <Googleai />
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white py-20 px-6">
         <div className="max-w-6xl mx-auto">
