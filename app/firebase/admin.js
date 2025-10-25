@@ -22,15 +22,15 @@ const serviceAccount = {
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    // storageBucket: "gamechanger-drive-91.appspot.com",
+    storageBucket: "topper-home-tuition.firebasestorage.app",
   });
 }
 
 // Export Storage bucket
-// export const bucket = admin.storage().bucket();
+export const bucket = admin.storage().bucket();
 
 // Export Firestore database (NEW - add this)
 export const adminDb = admin.firestore();
 
 // Default export for backwards compatibility
-// export default bucket;
+export default bucket;
