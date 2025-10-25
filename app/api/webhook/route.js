@@ -6,7 +6,8 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
 import db from "../../firebase/firestore.js";
-import { adminDb } from "@/firebase/admin";
+// import { adminDb } from "@/firebase/admin";
+import { adminDb } from "../../firebase/admin.js";
 
 console.log("🔧 All imports successful");
 console.log("🔧 Environment vars:", {
