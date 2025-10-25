@@ -27,7 +27,7 @@ export async function GET(req) {
   }
 }
 
- ✅ STEP 2: Handle Incoming Messages (POST) 
+//  ✅ STEP 2: Handle Incoming Messages (POST) 
 export async function POST(req) {
   try {
     const body = await req.json();
