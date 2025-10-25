@@ -14,6 +14,8 @@ const SignUpComponent = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [photoURL, setPhotoURL] = useState("");
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -186,20 +188,72 @@ const SignUpComponent = () => {
           </div>
         </div>
 
-        {/* Profile picture URL */}
+        {/* Profile picture upload */}
         <div className="mb-6 group">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Profile Picture URL (optional)
+            Profile Picture (optional)
           </label>
           <div className="relative">
             <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="url"
-              value={photoURL}
-              onChange={(e) => setPhotoURL(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 shadow-sm hover:shadow-md"
-              placeholder="https://example.com/photo.jpg"
-            />
+            <div className="flex items-center space-x-4">
+              <label className="w-full">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files && e.target.files[0];
+                    if (!file) return;
+                    try {
+                      setErrorMsg("");
+                      setUploading(true);
+                      // Upload to server route which uses admin bucket
+                      const formData = new FormData();
+                      formData.append("file", file);
+
+                      const res = await fetch("/api/upload", {
+                        method: "POST",
+                        body: formData,
+                      });
+
+                      const data = await res.json();
+                      if (!res.ok) {
+                        setErrorMsg(data?.error || "Upload failed");
+                        setUploading(false);
+                        return;
+                      }
+
+                      // data.url contains the signed URL to the uploaded file
+                      setPhotoURL(data.url);
+                      // preview locally
+                      setPreviewUrl(URL.createObjectURL(file));
+                    } catch (err) {
+                      setErrorMsg(err?.message || String(err));
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                  className="hidden"
+                />
+                <div className="w-full flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 cursor-pointer hover:shadow-md">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                      {previewUrl ? (
+                        <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+                      ) : photoURL ? (
+                        <img src={photoURL} alt="profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-gray-400">No image</div>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {uploading ? "Uploading..." : "Upload a photo or click to choose"}
+                    </div>
+                  </div>
+                  <div className="text-sm text-blue-600 font-medium">Choose</div>
+                </div>
+              </label>
+            </div>
+            <div className="mt-2 text-xs text-gray-500">Optional — JPG, PNG. Keep under 2MB for best results.</div>
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
           </div>
         </div>
