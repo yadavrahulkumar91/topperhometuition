@@ -53,7 +53,6 @@ export async function GET(req) {
     challenge,
     tokensMatch: token === VERIFY_TOKEN,
   });
-
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
     console.log("✅ Webhook verified successfully!");
     return new Response(challenge, {
@@ -66,6 +65,7 @@ export async function GET(req) {
   }
 }
 
+//sdf
 /* ✅ STEP 2: Handle Incoming Messages (POST) */
 // export async function POST(req) {
 //   try {
