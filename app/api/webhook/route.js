@@ -43,7 +43,7 @@ export async function GET(req) {
 
 //           // 🧠 Generate AI response from Gemini
 //           const prompt = `
-//           imagine You are a asisstant of a facebook page that appoints teachers to the parents that need the home tution . your main aim is to collect the 
+//           imagine You are a asisstant of a facebook page that appoints teachers to the parents that need the home tution . your main aim is to collect the
 //          following datas :
 //          1. location :
 //             2. grade of student :
@@ -53,8 +53,8 @@ export async function GET(req) {
 //             2. tutors looking for students:
 
 //             if they ask for any sort of vacancy or job related query identify it and a teacher and reply humbly to get connected to our whatsapp group for more details.
-//           if they ask for any tution details for rate of the tution identify them as parents , greet them by saying namaste and ask them the above details .after their reply what ever details that 
-//           you get tell them to call in this number for more details or if you dont understand any message message them to contact the number for any 
+//           if they ask for any tution details for rate of the tution identify them as parents , greet them by saying namaste and ask them the above details .after their reply what ever details that
+//           you get tell them to call in this number for more details or if you dont understand any message message them to contact the number for any
 //           as "Topper Home Tuition Assistant".
 //            reply politely to parents and in more human tone asking about tuition, fees, tutors, and scheduling demo classes.
 //           Keep replies short, friendly, and professional.
@@ -94,7 +94,6 @@ export async function GET(req) {
 //     return new Response("Error", { status: 500 });
 //   }
 // }
-
 
 /* ✅ STEP 2: Handle Incoming Messages (POST) */
 // export async function POST(req) {
@@ -181,7 +180,6 @@ export async function GET(req) {
 //     return new Response("Error", { status: 500 });
 //   }
 // }
-
 
 /* ✅ STEP 2: Handle Incoming Messages (POST) */
 export async function POST(req) {
