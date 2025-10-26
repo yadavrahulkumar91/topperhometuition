@@ -6,6 +6,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  sendEmailVerification,
 } from "firebase/auth";
 import { Eye, EyeOff, User, Mail, Lock, Image, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,7 @@ const SignUpComponent = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [createUserWithEmailAndPassword, user, loading, error] =
     useCreateUserWithEmailAndPassword(auth);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const router = useRouter();
 
@@ -82,6 +84,14 @@ const SignUpComponent = () => {
           displayName: `${firstName} ${lastName}`.trim(),
           photoURL: photoURL || undefined,
         });
+
+          // Send verification email
+          try {
+            await sendEmailVerification(result.user);
+            setVerificationSent(true);
+          } catch (e) {
+            console.warn("Failed to send verification email:", e);
+          }
       }
     } catch (err) {
       setErrorMsg(err.message);
@@ -420,6 +430,12 @@ const SignUpComponent = () => {
               <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
               🎉 Signup successful! Welcome, {user.user.email}
             </div>
+          </div>
+        )}
+
+        {verificationSent && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl mb-6">
+            Verification email sent — please check your inbox and click the link to verify your email before continuing.
           </div>
         )}
 

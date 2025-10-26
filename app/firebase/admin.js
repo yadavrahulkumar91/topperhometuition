@@ -34,3 +34,4 @@ export const adminDb = admin.firestore();
 
 // Default export for backwards compatibility
 export default bucket;
+export { admin };
