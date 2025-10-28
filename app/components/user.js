@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { auth } from "../firebase/config";
+import { auth } from "@firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
 import {
   MagnifyingGlassIcon,

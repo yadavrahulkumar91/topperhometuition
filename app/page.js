@@ -17,25 +17,27 @@ export default function Home() {
               <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
                 Excel in Your Studies with Expert Home Tutors
               </h1>
-              <Facebook/>
-              <WhatsApp/>
+              {/* <Facebook/>
+              <WhatsApp/> */}
               <p className="text-xl mb-8 text-blue-100">
                 Personalized one-on-one tuition for all subjects and grades.
                 Transform your academic journey with Topper Home Tuition Center.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link
-                  href="/enroll"
+                  href="/request-tutor"
                   className="bg-white text-blue-700 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
                 >
-                  Enroll Now
+                  Request Home Tutor
                 </Link>
                 <Link
-                  href="/tutors"
+                  href="/request-tutor"
                   className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-blue-700 transition-all"
-                >
-                  Find a Tutor
-                </Link>
+                >Contact through Messenger</Link>
+                <Link
+                  href="/request-tutor"
+                  className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-blue-700 transition-all"
+                >Contact through WhatsApp</Link>
               </div>
             </div>
             <div className="hidden md:flex justify-center">

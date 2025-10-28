@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "../firebase/config";
-import db from "../firebase/firestore";
+import { auth } from "@firebase/config";
+import db from "@firebase/firestore";
 import { doc, getDoc } from "firebase/firestore";
 import ProfileCard from "../components/dashboard/ProfileCard";
 import VerificationCard from "../components/dashboard/VerificationCard";

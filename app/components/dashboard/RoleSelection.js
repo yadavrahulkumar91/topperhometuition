@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import db from "../../firebase/firestore";
+import db from "@firebase/firestore";
 import { useRouter } from "next/navigation";
 
 export default function RoleSelection({ user, onRoleSelect }) {

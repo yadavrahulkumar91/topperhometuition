@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import db from "../firebase/firestore";
+import db from "@firebase/firestore";
 import { collection, getDocs } from "firebase/firestore";
 
 export default function StudentPage() {

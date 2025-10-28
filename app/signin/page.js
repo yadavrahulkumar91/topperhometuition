@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { auth } from "../firebase/config";
+import { auth } from "@firebase/config";
 import { useSignInWithEmailAndPassword } from "react-firebase-hooks/auth";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Eye, EyeOff, Mail, Lock, LogIn, Sparkles } from "lucide-react";

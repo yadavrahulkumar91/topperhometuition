@@ -144,7 +144,7 @@
 
 "use client";
 import React, { useState } from "react";
-import { auth } from "../firebase/config";
+import { auth } from "@firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { updateProfile, updatePassword } from "firebase/auth";
 import {
