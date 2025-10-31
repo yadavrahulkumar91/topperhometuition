@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { bucket } from "../../firebase/admin";
+import { bucket } from "@/firebase/admin";
 
 export async function POST(request) {
   try {
