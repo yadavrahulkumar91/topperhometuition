@@ -19,6 +19,9 @@ const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 /* ✅ STEP 1: Webhook Verification (GET) */
 export async function GET(req) {
+  const body = await req.json();
+  console.log("🔍 Webhook verification request received:", JSON.stringify(body, null, 2))   ;
+ 
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");
