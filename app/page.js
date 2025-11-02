@@ -3,8 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Facebook from "./components/facebook";
-import WhatsApp from "./components/whatsapp";
+
 
 export default function Home() {
   return (
@@ -17,8 +16,7 @@ export default function Home() {
               <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
                 Excel in Your Studies with Expert Home Tutors
               </h1>
-              <Facebook/>
-              <WhatsApp/>
+           
               <p className="text-xl mb-8 text-blue-100">
                 Personalized one-on-one tuition for all subjects and grades.
                 Transform your academic journey with Topper Home Tuition Center.
