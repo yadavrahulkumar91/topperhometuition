@@ -192,6 +192,7 @@ const ai = new GoogleGenAI({
 
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+const PAGE_ID = process.env.PAGE_ID; // Add your Facebook Page ID in .env
 
 /* ✅ STEP 1: Webhook Verification (GET) */
 export async function GET(req) {
@@ -217,20 +218,16 @@ export async function POST(req) {
       for (const entry of body.entry) {
         const event = entry.messaging[0];
         
-        // Check if this is a message event (not delivery, read, etc.)
+        // Check if this is a message event
         if (!event.message) {
           console.log("⏭️ Skipping non-message event");
           continue;
         }
 
-        // Skip if it's an echo (message sent by the page)
-        if (event.message.is_echo) {
-          console.log("⏭️ Skipping echo message");
-          continue;
-        }
-
         const senderId = event.sender.id;
+        const recipientId = event.recipient.id;
         const message = event.message?.text;
+        const isEcho = event.message.is_echo || false;
 
         // Only process if there's actual text content
         if (!message || message.trim() === "") {
@@ -238,19 +235,65 @@ export async function POST(req) {
           continue;
         }
 
-        console.log("💬 Received message:", message, "from:", senderId);
-
-        /* 🗂️ STEP 1: Fetch conversation from Firestore */
+        /* 🗂️ Fetch conversation from Firestore */
         const conversationRef = adminDb
           .collection("conversations")
           .doc(senderId);
         const conversationDoc = await conversationRef.get();
 
         let messages = [];
+        let lastMessageWasManual = false;
 
         if (conversationDoc.exists) {
-          messages = conversationDoc.data().messages || [];
+          const data = conversationDoc.data();
+          messages = data.messages || [];
+          lastMessageWasManual = data.lastMessageWasManual || false;
         }
+
+        /* 📝 CASE 1: Echo message (message sent by page/bot) */
+        if (isEcho) {
+          console.log("📤 Echo detected: Message sent by page");
+          
+          // Check if this message has app_id (bot sent) or not (manual)
+          const isManualReply = !event.message.app_id;
+          
+          if (isManualReply) {
+            console.log("👤 Manual reply detected from team");
+            
+            // Save manual reply as assistant message
+            messages.push({
+              role: "assistant",
+              text: message,
+              timestamp: new Date().toISOString(),
+              manual: true,
+            });
+
+            // Keep only last 20 messages
+            if (messages.length > 20) {
+              messages = messages.slice(-20);
+            }
+
+            // Save and mark that last message was manual
+            await conversationRef.set({
+              userId: senderId,
+              messages: messages,
+              lastMessageWasManual: true,
+              updatedAt: new Date().toISOString(),
+              createdAt: conversationDoc.exists
+                ? conversationDoc.data().createdAt
+                : new Date().toISOString(),
+            });
+
+            console.log("✅ Manual reply saved to Firestore");
+          } else {
+            console.log("🤖 Bot's own message echo - ignoring");
+          }
+          
+          continue; // Don't process echoes further
+        }
+
+        /* 📥 CASE 2: User message */
+        console.log("💬 User message received:", message, "from:", senderId);
 
         // Add user message to history
         messages.push({
@@ -259,12 +302,31 @@ export async function POST(req) {
           timestamp: new Date().toISOString(),
         });
 
-        // Keep only last 20 messages (10 exchanges) to avoid token limits
+        // Keep only last 20 messages
         if (messages.length > 20) {
           messages = messages.slice(-20);
         }
 
-        /* 🧠 STEP 2: Build conversation context */
+        // Check if last message was manual - if yes, don't auto-reply
+        if (lastMessageWasManual) {
+          console.log("⏸️ Last reply was manual - Bot will NOT auto-reply");
+          
+          // Save user message but don't reply
+          await conversationRef.set({
+            userId: senderId,
+            messages: messages,
+            lastMessageWasManual: true, // Keep the flag
+            updatedAt: new Date().toISOString(),
+            createdAt: conversationDoc.exists
+              ? conversationDoc.data().createdAt
+              : new Date().toISOString(),
+          });
+
+          console.log("✅ User message saved, waiting for manual reply");
+          continue;
+        }
+
+        /* 🧠 Build conversation context for AI */
         const conversationHistory = messages
           .map(
             (msg) =>
@@ -321,15 +383,13 @@ Always ask them to send their contact number so you can talk. Or they can contac
 
 Respond to the latest user message naturally. If you cannot understand or should not reply, respond ONLY with: SKIP_REPLY`;
 
-        /* 💡 STEP 3: Get Gemini Response */
+        /* 💡 Get AI Response */
         const result = await ai.models.generateContent({
           model: "gemini-2.0-flash-exp",
           contents: [{ role: "user", parts: [{ text: prompt }] }],
         });
 
         let reply = result.response?.text() || "";
-        
-        // Clean up the response
         reply = reply.trim();
 
         console.log("🤖 AI Response:", reply);
@@ -338,10 +398,10 @@ Respond to the latest user message naturally. If you cannot understand or should
         if (reply === "SKIP_REPLY" || reply.includes("SKIP_REPLY")) {
           console.log("⏭️ AI decided to skip this reply");
           
-          // Still save the user message but don't add AI response
           await conversationRef.set({
             userId: senderId,
             messages: messages,
+            lastMessageWasManual: false,
             updatedAt: new Date().toISOString(),
             createdAt: conversationDoc.exists
               ? conversationDoc.data().createdAt
@@ -349,20 +409,22 @@ Respond to the latest user message naturally. If you cannot understand or should
           });
           
           console.log("✅ User message saved, but no reply sent");
-          continue; // Skip to next event
+          continue;
         }
 
-        // Add assistant reply to history
+        // Add bot reply to history
         messages.push({
           role: "assistant",
           text: reply,
           timestamp: new Date().toISOString(),
+          manual: false,
         });
 
-        /* 💾 STEP 4: Save conversation to Firestore */
+        /* 💾 Save conversation to Firestore */
         await conversationRef.set({
           userId: senderId,
           messages: messages,
+          lastMessageWasManual: false, // Reset flag since bot replied
           updatedAt: new Date().toISOString(),
           createdAt: conversationDoc.exists
             ? conversationDoc.data().createdAt
@@ -371,7 +433,7 @@ Respond to the latest user message naturally. If you cannot understand or should
 
         console.log("✅ Conversation saved to Firestore");
 
-        /* 📤 STEP 5: Send reply to Messenger */
+        /* 📤 Send reply to Messenger */
         await axios.post(
           `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
           {
@@ -380,7 +442,7 @@ Respond to the latest user message naturally. If you cannot understand or should
           }
         );
 
-        console.log("✅ Message sent to user");
+        console.log("✅ Bot message sent to user");
       }
 
       return NextResponse.json({ status: "ok" });
